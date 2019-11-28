@@ -2,7 +2,7 @@
   "name": "oculow",
   "version": "0.0.1",
   "description": "Tool for adding visual validations to ui tests",
-  "main": "index.js",
+  "main": "oculow.js",
   "scripts": {
     "test": "test"
   },
@@ -25,6 +25,9 @@
   "bugs": {
     "url": "https://github.com/oculow/oculow-js-sdk/issues"
   },
+  "files": [
+    "oculow.js"
+  ],
   "homepage": "https://github.com/oculow/oculow-js-sdk#readme",
   "devDependencies": {
     "@wdio/cli": "^5.16.10",
@@ -34,5 +37,8 @@
     "@wdio/sync": "^5.16.10",
     "chromedriver": "^78.0.1",
     "wdio-chromedriver-service": "^5.0.2"
+  },
+  "dependencies": {
+    "tmp": "^0.1.0"
   }
 }
