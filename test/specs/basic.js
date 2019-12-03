@@ -12,11 +12,10 @@ describe('webdriver.io page', () => {
 
 describe('oculow sdk test', () => {
     it('should capture and process the image', () => {
-        oculow = oculow.Oculow()
-        oculow.setApiKey()
-        oculow.setAppId()
-        oculow.setBaselineManagement()
-        oculow.setComparisonLogic()
+        oculow.setApiKey("10eVwxGqZMkJILKrlPnL8RmHZjAhDiNy","qzSqIAHye2MJvrt37VxzBsv4ADwO9Q7G")
+        oculow.setAppId("oculowjs")
+        oculow.setBaselineManagement(oculow.ASSISTED)
+        oculow.setComparisonLogic(oculow.PIXEL_DIFF)
         
         browser.url('https://www.oculow.com')
         var result = oculow.captureScreen(browser, "testing js.png")

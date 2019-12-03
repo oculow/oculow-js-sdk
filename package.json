@@ -39,6 +39,8 @@
     "wdio-chromedriver-service": "^5.0.2"
   },
   "dependencies": {
+    "axios": "^0.19.0",
+    "form-data": "^3.0.0",
     "tmp": "^0.1.0"
   }
 }
