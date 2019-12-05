@@ -18,9 +18,7 @@ describe('oculow sdk test', () => {
         oculow.setComparisonLogic(oculow.PIXEL_DIFF)
         
         browser.url('https://www.oculow.com')
-        var result = oculow.captureScreen(browser, "testing js.png")
-        console.log("RESULT: "+result)
-
+        oculow.captureScreen(browser, "testing js.png")
 
     })
 })
