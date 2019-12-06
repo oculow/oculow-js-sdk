@@ -2,6 +2,10 @@ const assert = require('assert')
 var oculow = require('../../oculow.js')
 oculow = new oculow.Oculow();
 
+function afterOculowSDKTest(){
+    console.log("after request");
+}
+
 describe('webdriver.io page', () => {
     it('should have the right title', () => {
         browser.url('https://webdriver.io')
@@ -18,7 +22,6 @@ describe('oculow sdk test', () => {
         oculow.setComparisonLogic(oculow.PIXEL_DIFF)
         
         browser.url('https://www.oculow.com')
-        oculow.captureScreen(browser, "testing js.png")
-
+        return oculow.captureScreen(browser, "testing js.png").then(result => console.log(result)).catch(function(err){console.log("error on request")}).then(afterOculowSDKTest);
     })
 })
