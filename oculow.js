@@ -5,8 +5,8 @@ function _tempDirCreated(err, path) {
   return path;
 }
 var FormData = require('form-data');
-const request = require('request')
 var fs = require('fs');
+const axios = require('axios');
 
 module.exports ={
   Oculow : class Oculow {
@@ -59,9 +59,7 @@ module.exports ={
     }
     
     uploadImage(path){
-      var result = postImage(path, this.baseUrl, this.processFunction, this.apiKey, this.apiSecretKey, this.appId, this.comparisonLogic, this._executionId, this.baselineManagement, this.viewportHeight, this.viewportWidth)
-      return result
-      
+      postImage(path, this.baseUrl, this.processFunction, this.apiKey, this.apiSecretKey, this.appId, this.comparisonLogic, this._executionId, this.baselineManagement, this.viewportHeight, this.viewportWidth);
     }
     captureScreen (browser, title) {
       var final_image_path= this.path.join(this._dir.toString(),title)
@@ -69,14 +67,12 @@ module.exports ={
       browser.saveScreenshot(final_image_path);
       // this.viewportWidth = browser.getViewportSize('width')
       // this.viewportHeight = browser.getViewportSize('height')
-      var res = this.uploadImage(final_image_path)
-      console.log(`RES: ${res.statusCode}`)
-      return res
+      this.uploadImage(final_image_path);
     }
   }
 }
 
-var postImage = async function(path, baseUrl, processFunction, apiKey, apiSecretKey, appId, comparisonLogic, executionId, baselineManagement, viewportWidth, viewportHeight) {
+function postImage (path, baseUrl, processFunction, apiKey, apiSecretKey, appId, comparisonLogic, executionId, baselineManagement, viewportWidth, viewportHeight) {
   
     // let data = new FormData();
     // data.append("file", fs.createReadStream(path));
@@ -113,14 +109,27 @@ var postImage = async function(path, baseUrl, processFunction, apiKey, apiSecret
       //   "\nbaseline_management:  "+baselineManagement+
       //   "\nviewport:  {\"width:"+ viewportWidth + ", height:"+ viewportHeight+"}",
       // )
-      if (executionId){
-        console.log("exec id found!!!")
-        formData['executionId'] = executionId
-      }
-    return await request.post({url:baseUrl+processFunction, formData: formData}, function optionalCallback(err, httpResponse, body) {
-      if (err) {
-        return console.error('upload failed:', err);
-      }
-      console.log('Upload successful!  Server responded with:', body);
-  })
+  //     if (executionId){
+  //       console.log("exec id found!!!")
+  //       formData['executionId'] = executionId
+  //     }
+  //   return axios.post({url:baseUrl+processFunction, formData: formData}, function optionalCallback(err, httpResponse, body) {
+  //     if (err) {
+  //       return console.error('upload failed:', err);
+  //     }
+  //     console.log('Upload successful!  Server responded with:', body);
+  // })
+  // console.log(`${baseUrl + processFunction}`);
+  // console.log(JSON.stringify(formData));
+      let ret = Promise.resolve();
+      ret = ret.then(() => axios.post(`${baseUrl + processFunction}`,
+        formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        }).then(response => console.log(`RES: ${JSON.stringify(response)}`)).catch(function (error) {
+                console.log(error);
+                console.log(error.response.status);
+        }));
+        return ret;
 };
