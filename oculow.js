@@ -97,6 +97,17 @@ module.exports = {
       // this.viewportHeight = browser.getViewportSize('height')
       return this.uploadImage(final_image_path)
         .then(result => console.log(result)) //YOUR SUCCESS
+        //Cuando la request quede funcionando y con success acá, se hace aca alguna logica
+        //que storee localmente el id que precisas, y luego a las proximas request las usas 
+        //basandote en ese id. 
+        /*
+        El codigo te quedaría algo asi como:
+        let currentExecId = null; variable de ejemplo declara arriba junto a las demas
+        
+        .then(function (res) {
+          currentExecId = res.data.id; Navegas hasta donde este el id o el dato que precisas y se lo asignas a currentExecId
+        })
+        */
         .catch(function (err) { //YOUR FAIL
           let response = err.response;
           let status = response.status;
