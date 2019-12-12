@@ -90,6 +90,9 @@ module.exports = {
     }
 
     captureScreen(browser, title) {
+      if (this.path.extname(title) == ''){
+        title=title+'.png'
+      }
       var final_image_path = this.path.join(this._dir.toString(), title)
       console.log("Final image path: " + final_image_path)
       browser.saveScreenshot(final_image_path);
