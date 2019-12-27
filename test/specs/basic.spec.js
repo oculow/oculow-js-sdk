@@ -24,15 +24,15 @@ describe('oculow sdk test', () => {
     it('should capture and process the image', () => {
         browser.url('https://www.oculow.com')
         oculow.captureScreen(browser, "Homesite");
-        console.log(1)
+        
         
         browser.url('https://www.oculow.com/blog/index.html')
         oculow.captureScreen(browser, "Blog");
-        console.log(2)
+        
 
         browser.url('https://www.oculow.com/404')
         oculow.captureScreen(browser, "Not found.png");
-        console.log(3)
+        
 
     })
 })
