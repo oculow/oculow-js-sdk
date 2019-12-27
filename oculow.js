@@ -39,8 +39,6 @@ module.exports = {
             this.reportBaseUrl = "https://dev.oculow.com/dashboard/executions.html"
             this.executionStatusFunction = "get_execution_status-dev" // TODO extract to config file
             this.processFunction = "process_image-dev" // TODO extract to config file
-
-
         };
 
         setComparisonLogic(COMPARISON_LOGIC) {
@@ -50,6 +48,7 @@ module.exports = {
         setBaselineManagement(MANAGEMENT_LEVEL) {
             this.baselineManagement = MANAGEMENT_LEVEL;
         }
+        
         setAppId(APP_ID) {
             this.appId = APP_ID;
         }
@@ -59,39 +58,25 @@ module.exports = {
             this.apiSecretKey = SECRET_KEY;
         }
 
-        postImage(headers, baseUrl, formData) {
-
-            request({
-                headers,
-                uri: baseUrl,
-                body: formData,
-                method: 'POST'
-            }, function(err, res, body) {
+        postImage(url, options) {
+            request.post({url: url, formData: options}, function (err, httpResponse, body) {
                 console.log('ERROR: ', err);
-                console.log('STATUS CODE: ', res && res.statusCode);
+                console.log('STATUS CODE: ', httpResponse && httpResponse.statusCode);
+                console.log('BODY: ', body);
             });
-
         }
 
-
-
         async uploadImage(path) {
-            let data = {
-                'file': fs.createReadStream(path),
-                'viewport': "{\"width:" + this.viewportWidth + ", height:" + this.viewportHeight + "}",
-                'baseline_management': this.baselineManagement,
-                'comparison_logic': this.comparisonLogic,
-                'api_key': this.apiKey + "__" + this.apiSecretKey,
-                'app_id': this.appId
+            let options = {
+                file: fs.createReadStream(path),
+                viewport: JSON.stringify({width: this.viewportWidth, height: this.viewportHeight}),
+                baseline_management: this.baselineManagement,
+                comparison_logic: this.comparisonLogic,
+                api_key: this.apiKey + "__" + this.apiSecretKey,
+                app_id: this.appId
             }
-            let fdata = querystring.stringify(data);
-            let fdataLength = fdata.length;
-            let headers = {
-                'Content-Length': fdataLength,
-                'Content-Type': 'application/x-www-form-urlencoded'
-            }
-            let baseURL = this.baseUrl + this.processFunction;
-            return await this.postImage(headers, baseURL, fdata);
+            let url = this.baseUrl + this.processFunction;
+            return await this.postImage(url, options);
         }
 
         executeAfterCapturingScreen() {
