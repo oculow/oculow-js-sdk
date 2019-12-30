@@ -96,7 +96,7 @@ module.exports = {
             // this.viewportHeight = browser.getViewportSize('height')
             this.setKeys('9HanEbAexPF2cPAJzlFNXBIGNzqhK2pU', 'uTLZZLR/HnUOCu5U7vNI6WrsYTBGTBxM');
             this.setAppId('ocw');
-            this.uploadImage(final_image_path).then(executeAfterCapturingScreen)
+            this.uploadImage(final_image_path).then(this.executeAfterCapturingScreen);
         }
     }
 }
