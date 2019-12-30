@@ -1,5 +1,5 @@
 const assert = require('assert')
-var oculow = require('../../oculow.js')
+let oculow = require('../../oculow.js')
 oculow = new oculow.Oculow();
 
 

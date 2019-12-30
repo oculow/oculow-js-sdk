@@ -1,5 +1,4 @@
-const request = require('request');
-const querystring = require('querystring');
+let rp = require('request-promise');
 let fs = require('fs');
 
 
@@ -58,12 +57,13 @@ module.exports = {
             this.apiSecretKey = SECRET_KEY;
         }
 
-        postImage(url, options) {
-            request.post({url: url, formData: options}, function (err, httpResponse, body) {
-                console.log('ERROR: ', err);
-                console.log('STATUS CODE: ', httpResponse && httpResponse.statusCode);
-                console.log('BODY: ', body);
-            });
+        postImage(url, method, headers, options) {
+                rp({url: url, method: method, headers: headers, formData: options}).then(function (response) {
+                    console.log(response);
+                })
+                .catch(function (err) {
+                    console.log(err);
+                });
         }
 
         async uploadImage(path) {
@@ -75,8 +75,10 @@ module.exports = {
                 api_key: this.apiKey + "__" + this.apiSecretKey,
                 app_id: this.appId
             }
+            let method = 'POST';
+            let headers = { 'Content-Type': 'application/json' };
             let url = this.baseUrl + this.processFunction;
-            return await this.postImage(url, options);
+            return await this.postImage(url, method, headers, options);
         }
 
         executeAfterCapturingScreen() {
@@ -94,7 +96,7 @@ module.exports = {
             // this.viewportHeight = browser.getViewportSize('height')
             this.setKeys('9HanEbAexPF2cPAJzlFNXBIGNzqhK2pU', 'uTLZZLR/HnUOCu5U7vNI6WrsYTBGTBxM');
             this.setAppId('ocw');
-            return this.uploadImage(final_image_path).then(this.executeAfterCapturingScreen);
+            this.uploadImage(final_image_path).then(executeAfterCapturingScreen)
         }
     }
 }
