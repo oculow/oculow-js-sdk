@@ -21,6 +21,7 @@ describe('webdriver.io page', () => {
 })
 
 describe('oculow sdk test', () => {
+
     it('should capture and process the image', () => {
         browser.url('https://www.oculow.com')
         oculow.captureScreen(browser, "Homesite");
@@ -32,8 +33,11 @@ describe('oculow sdk test', () => {
 
         browser.url('https://www.oculow.com/404')
         oculow.captureScreen(browser, "Not found.png");
-        
 
+    })
+
+    it('should get results', () => {
+        oculow.getResult();
     })
 })
 

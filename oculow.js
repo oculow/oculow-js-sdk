@@ -1,6 +1,7 @@
-let rp = require('request-promise');
+const assert = require('assert')
+const POST_METHOD = 'POST';
+let request = require('request');
 let fs = require('fs');
-
 
 function _tempDirCreated(err, path) {
     if (err) throw err;
@@ -47,6 +48,10 @@ module.exports = {
         setBaselineManagement(MANAGEMENT_LEVEL) {
             this.baselineManagement = MANAGEMENT_LEVEL;
         }
+
+        setExecutionId(EXECUTION_ID){
+            this._executionId = EXECUTION_ID;
+        }
         
         setAppId(APP_ID) {
             this.appId = APP_ID;
@@ -57,17 +62,10 @@ module.exports = {
             this.apiSecretKey = SECRET_KEY;
         }
 
-        postImage(url, method, headers, options) {
-                rp({url: url, method: method, headers: headers, formData: options}).then(function (response) {
-                    console.log(response);
-                })
-                .catch(function (err) {
-                    console.log(err);
-                });
-        }
-
-        async uploadImage(path) {
-            let options = {
+        uploadImage(path) {
+            let url = this.baseUrl + this.processFunction;
+            let headers = { 'Content-Type': 'application/json' };
+            let data = {
                 file: fs.createReadStream(path),
                 viewport: JSON.stringify({width: this.viewportWidth, height: this.viewportHeight}),
                 baseline_management: this.baselineManagement,
@@ -75,10 +73,21 @@ module.exports = {
                 api_key: this.apiKey + "__" + this.apiSecretKey,
                 app_id: this.appId
             }
-            let method = 'POST';
-            let headers = { 'Content-Type': 'application/json' };
-            let url = this.baseUrl + this.processFunction;
-            return await this.postImage(url, method, headers, options);
+            browser.call(() => {
+                return new Promise((resolve, reject) => {
+                    request({url: url, method: POST_METHOD, headers: headers, formData: data, json:true, resolveWithFullResponse:true},(err,res) => {
+                        if (err) {
+                            return reject(err)
+                        }
+                        resolve(res)
+                        console.log(res);
+                        console.log("Get result STATUS CODE: ", res.statusCode);
+                        console.log("Get result STATUS MESSAGE: ", res.statusMessage);
+                        console.log("Get result BODY: ",res.body);
+                        assert.equal(200, res.statusCode);
+                    })
+                })
+            })
         }
 
         executeAfterCapturingScreen() {
@@ -96,7 +105,37 @@ module.exports = {
             // this.viewportHeight = browser.getViewportSize('height')
             this.setKeys('9HanEbAexPF2cPAJzlFNXBIGNzqhK2pU', 'uTLZZLR/HnUOCu5U7vNI6WrsYTBGTBxM');
             this.setAppId('ocw');
-            this.uploadImage(final_image_path).then(this.executeAfterCapturingScreen);
+            this.uploadImage(final_image_path);
+        }
+
+        getResult(){
+            let url = this.baseUrl + this.executionStatusFunction;
+            let headers = { 'Content-Type': 'multipart/form-data' };
+            this.setKeys('9HanEbAexPF2cPAJzlFNXBIGNzqhK2pU', 'uTLZZLR/HnUOCu5U7vNI6WrsYTBGTBxM');
+            this.setAppId('ocw');
+            this.setExecutionId('f2d31c51-bad2-4e39-8711-1cc1ff71ea4a_0de8ef6f-7837-4deb-81ed-6837ab67da23');
+            let data = {
+                api_key: this.apiKey,
+                app_id: this.appId,
+                execution_id: this._executionId
+
+            }
+            browser.call(() => {
+                return new Promise((resolve, reject) => {
+                    request({url: url, method: POST_METHOD, headers: headers, formData: data, json:true, resolveWithFullResponse:true},(err,res) => {
+                        if (err) {
+                            return reject(err)
+                        }
+                        resolve(res)
+                        console.log(res);
+                        console.log("Get result STATUS CODE: ", res.statusCode);
+                        console.log("Get result STATUS MESSAGE: ", res.statusMessage);
+                        console.log("Get result BODY: ", res.body);
+                        assert.equal(200, res.statusCode);
+                    })
+                })
+            })
+            
         }
     }
 }
