@@ -4,19 +4,12 @@ const MULTIPART_FORMDATA = 'multipart/form-data';
 let request = require('request');
 let fs = require('fs');
 
-function _tempDirCreated(err, path) {
-    if (err) throw err;
-    console.log("TEMP PATH: " + path)
-    return path;
-}
 
 module.exports = {
     Oculow: class Oculow {
         constructor() {
             this.tmp = require('tmp');
             this.path = require('path');
-
-            // Find better solution for this...
             this.MANUAL = 0;
             this.ASSISTED = 1;
             this.FORCE_NEW = 2;
@@ -24,41 +17,23 @@ module.exports = {
             this.PIXEL_DIFF = 0;
             this.IGNORE_AA = 1;
             this.DETECT_ERRORS = 3;
-
             this._dir = this.tmp.dirSync().name;
             console.log('Dir: ', this._dir);
-
             this.comparisonLogic = 1
             this.baselineManagement = 1
-            this._executionId = null
+            this.executionId = null
             this.apiKey = null
             this.apiSecretKey = null
             this.appId = null
-            this.viewportWidth = '200'
-            this.viewportHeight = '200'
+            this.accId = null
+            this.viewportWidth = null
+            this.viewportHeight = null
+            this.executionStatus = null
             this.baseUrl = "https://us-central1-lince-232621.cloudfunctions.net/"
             this.reportBaseUrl = "https://dev.oculow.com/dashboard/executions.html"
-            this.executionStatusFunction = "get_execution_status-dev" // TODO extract to config file
-            this.processFunction = "process_image-dev" // TODO extract to config file
+            this.executionStatusFunction = "get_execution_status-dev"
+            this.processFunction = "process_image-dev"
         };
-
-        callRequest(options){
-            browser.call(() => {
-                return new Promise((resolve, reject) => {
-                    request(options,(err,res) => {
-                        if (err) {
-                            return reject(err)
-                        }
-                        resolve(res)
-                        console.log(res);
-                        console.log("Get result STATUS CODE: ", res.statusCode);
-                        console.log("Get result STATUS MESSAGE: ", res.statusMessage);
-                        console.log("Get result BODY: ", res.body);
-                        assert.equal(200, res.statusCode);
-                    })
-                })
-            })
-        }
 
         setComparisonLogic(COMPARISON_LOGIC) {
             this.comparisonLogic = COMPARISON_LOGIC;
@@ -69,11 +44,19 @@ module.exports = {
         }
 
         setExecutionId(EXECUTION_ID){
-            this._executionId = EXECUTION_ID;
+            this.executionId = EXECUTION_ID;
+        }
+
+        setExecutionStatus(STATUS){
+            this.executionStatus = STATUS;
         }
         
         setAppId(APP_ID) {
             this.appId = APP_ID;
+        }
+
+        setAccId(ACC_ID){
+            this.accId = ACC_ID;
         }
 
         setKeys(API_KEY, SECRET_KEY) {
@@ -81,6 +64,25 @@ module.exports = {
             this.apiSecretKey = SECRET_KEY;
         }
 
+        setViewportSize(){
+            this.viewportWidth = this.getBrowserWindowSize('width');
+            this.viewportHeight = this.getBrowserWindowSize('height');
+        }
+
+        getBrowserWindowSize(param){
+            let size = browser.getWindowSize();
+            switch(param){
+                case "width":
+                return size.width;
+                
+                case "height":
+                return size.height;
+
+                default:
+                return size;
+            }
+            
+        }
 
         uploadImage(path) {
             let url = this.baseUrl + this.processFunction;
@@ -93,7 +95,25 @@ module.exports = {
                 api_key: this.apiKey + "__" + this.apiSecretKey,
                 app_id: this.appId
             }
-            this.callRequest({url: url, method: POST_METHOD, headers: headers, formData: data, json:true, resolveWithFullResponse:true});
+            if(this.executionId){
+                data.execution_id = this.executionId;
+            }
+            let options = {url: url, method: POST_METHOD, headers: headers, formData: data};
+            browser.call(() => {
+                return new Promise((resolve, reject) => {
+                    request(options,(err,res) => {
+                        if (err) {
+                            return reject(err)
+                        }
+                        resolve(res)
+                        console.log("Capture screen: ", res.statusCode + " " + res.statusMessage);
+                        let load = JSON.parse(res.body);
+                        this.setExecutionId(load.execution_id);
+                        this.setAccId(load.acc_id);
+                        assert.equal(200, res.statusCode);
+                    })
+                }).then(this.getResult())
+            })
         }
 
 
@@ -104,8 +124,7 @@ module.exports = {
             let final_image_path = this.path.join(this._dir.toString(), title);
             console.log("Final image path: " + final_image_path);
             browser.saveScreenshot(final_image_path);
-            // this.viewportWidth = browser.getViewportSize('width')
-            // this.viewportHeight = browser.getViewportSize('height')
+            this.setViewportSize();
             this.setKeys('9HanEbAexPF2cPAJzlFNXBIGNzqhK2pU', 'uTLZZLR/HnUOCu5U7vNI6WrsYTBGTBxM');
             this.setAppId('ocw');
             this.uploadImage(final_image_path);
@@ -113,18 +132,40 @@ module.exports = {
 
 
         getResult(){
-            this.setKeys('9HanEbAexPF2cPAJzlFNXBIGNzqhK2pU', 'uTLZZLR/HnUOCu5U7vNI6WrsYTBGTBxM');
-            this.setAppId('ocw');
-            this.setExecutionId('f2d31c51-bad2-4e39-8711-1cc1ff71ea4a_0de8ef6f-7837-4deb-81ed-6837ab67da23');
             let url = this.baseUrl + this.executionStatusFunction;
             let headers = { 'Content-Type': MULTIPART_FORMDATA };
             let data = {
                 api_key: this.apiKey,
                 app_id: this.appId,
-                execution_id: this._executionId
+                execution_id: this.executionId
             }
-            this.callRequest({url: url, headers: headers, formData: data, json:true, resolveWithFullResponse:true});
-            
+            let options = {url: url, method: POST_METHOD, headers: headers, formData: data};
+            browser.call(() => {
+                return new Promise((resolve, reject) => {
+                    request(options,(err,res) => {
+                        if (err) {
+                            return reject(err)
+                        }
+                        resolve(res)
+                        console.log("Get result: ", res.statusCode + " " + res.statusMessage);
+                        this.setExecutionStatus(res.body)
+                        assert.equal(200, res.statusCode);
+                    })
+                }).then(this.dispose(this.executionStatus))
+            })   
+        }
+
+        dispose(status){
+            let reportURL = this.reportBaseUrl + "?id=" + this.executionId + "&app_id=" + this.appId + "&acc_id=" + this.accId;
+            if(status){
+                if (status.includes("action required")) {
+                console.log("Baseline action is required, visit:", reportURL);
+                }
+                else if (status.includes("failed")) {
+                    console.log("Tests failed, please review at: ", reportURL);
+                }
+            }
+            console.log("To view a detailed report of the execution please navigate to: ", this.reportBaseUrl + "?id=" + this.executionId);
         }
     }
 }

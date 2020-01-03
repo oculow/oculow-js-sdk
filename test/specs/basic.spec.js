@@ -35,10 +35,6 @@ describe('oculow sdk test', () => {
         oculow.captureScreen(browser, "Not found.png");
 
     })
-
-    it('should get results', () => {
-        oculow.getResult();
-    })
     
 })
 
