@@ -39,6 +39,7 @@ describe('oculow sdk test', () => {
     it('should get results', () => {
         oculow.getResult();
     })
+    
 })
 
 after(() => {

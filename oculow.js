@@ -1,5 +1,6 @@
 const assert = require('assert')
 const POST_METHOD = 'POST';
+const MULTIPART_FORMDATA = 'multipart/form-data';
 let request = require('request');
 let fs = require('fs');
 
@@ -41,6 +42,24 @@ module.exports = {
             this.processFunction = "process_image-dev" // TODO extract to config file
         };
 
+        callRequest(options){
+            browser.call(() => {
+                return new Promise((resolve, reject) => {
+                    request(options,(err,res) => {
+                        if (err) {
+                            return reject(err)
+                        }
+                        resolve(res)
+                        console.log(res);
+                        console.log("Get result STATUS CODE: ", res.statusCode);
+                        console.log("Get result STATUS MESSAGE: ", res.statusMessage);
+                        console.log("Get result BODY: ", res.body);
+                        assert.equal(200, res.statusCode);
+                    })
+                })
+            })
+        }
+
         setComparisonLogic(COMPARISON_LOGIC) {
             this.comparisonLogic = COMPARISON_LOGIC;
         }
@@ -62,9 +81,10 @@ module.exports = {
             this.apiSecretKey = SECRET_KEY;
         }
 
+
         uploadImage(path) {
             let url = this.baseUrl + this.processFunction;
-            let headers = { 'Content-Type': 'application/json' };
+            let headers = { 'Content-Type': MULTIPART_FORMDATA };
             let data = {
                 file: fs.createReadStream(path),
                 viewport: JSON.stringify({width: this.viewportWidth, height: this.viewportHeight}),
@@ -73,26 +93,9 @@ module.exports = {
                 api_key: this.apiKey + "__" + this.apiSecretKey,
                 app_id: this.appId
             }
-            browser.call(() => {
-                return new Promise((resolve, reject) => {
-                    request({url: url, method: POST_METHOD, headers: headers, formData: data, json:true, resolveWithFullResponse:true},(err,res) => {
-                        if (err) {
-                            return reject(err)
-                        }
-                        resolve(res)
-                        console.log(res);
-                        console.log("Get result STATUS CODE: ", res.statusCode);
-                        console.log("Get result STATUS MESSAGE: ", res.statusMessage);
-                        console.log("Get result BODY: ",res.body);
-                        assert.equal(200, res.statusCode);
-                    })
-                })
-            })
+            this.callRequest({url: url, method: POST_METHOD, headers: headers, formData: data, json:true, resolveWithFullResponse:true});
         }
 
-        executeAfterCapturingScreen() {
-            console.log("THIS FUNCTION WAS EXECUTED AFTER CAPTURING SCREEN");
-        }
 
         captureScreen(browser, title) {
             if (this.path.extname(title) == '') {
@@ -108,33 +111,19 @@ module.exports = {
             this.uploadImage(final_image_path);
         }
 
+
         getResult(){
-            let url = this.baseUrl + this.executionStatusFunction;
-            let headers = { 'Content-Type': 'multipart/form-data' };
             this.setKeys('9HanEbAexPF2cPAJzlFNXBIGNzqhK2pU', 'uTLZZLR/HnUOCu5U7vNI6WrsYTBGTBxM');
             this.setAppId('ocw');
             this.setExecutionId('f2d31c51-bad2-4e39-8711-1cc1ff71ea4a_0de8ef6f-7837-4deb-81ed-6837ab67da23');
+            let url = this.baseUrl + this.executionStatusFunction;
+            let headers = { 'Content-Type': MULTIPART_FORMDATA };
             let data = {
                 api_key: this.apiKey,
                 app_id: this.appId,
                 execution_id: this._executionId
-
             }
-            browser.call(() => {
-                return new Promise((resolve, reject) => {
-                    request({url: url, method: POST_METHOD, headers: headers, formData: data, json:true, resolveWithFullResponse:true},(err,res) => {
-                        if (err) {
-                            return reject(err)
-                        }
-                        resolve(res)
-                        console.log(res);
-                        console.log("Get result STATUS CODE: ", res.statusCode);
-                        console.log("Get result STATUS MESSAGE: ", res.statusMessage);
-                        console.log("Get result BODY: ", res.body);
-                        assert.equal(200, res.statusCode);
-                    })
-                })
-            })
+            this.callRequest({url: url, headers: headers, formData: data, json:true, resolveWithFullResponse:true});
             
         }
     }
