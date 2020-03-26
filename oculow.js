@@ -30,9 +30,9 @@ module.exports = {
             this.viewportHeight = null
             this.executionStatus = null
             this.baseUrl = "https://us-central1-lince-232621.cloudfunctions.net/"
-            this.reportBaseUrl = "https://dev.oculow.com/dashboard/executions.html"
-            this.executionStatusFunction = "get_execution_status-dev"
-            this.processFunction = "process_image-dev"
+            this.reportBaseUrl = "https://oculow.com/dashboard/executions.html"
+            this.executionStatusFunction = "get_execution_status-prod"
+            this.processFunction = "process_image-prod"
         };
 
         setComparisonLogic(COMPARISON_LOGIC) {
@@ -125,8 +125,6 @@ module.exports = {
             console.log("Final image path: " + final_image_path);
             browser.saveScreenshot(final_image_path);
             this.setViewportSize();
-            this.setKeys('9HanEbAexPF2cPAJzlFNXBIGNzqhK2pU', 'uTLZZLR/HnUOCu5U7vNI6WrsYTBGTBxM');
-            this.setAppId('ocw');
             this.uploadImage(final_image_path);
         }
 
