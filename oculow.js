@@ -3,11 +3,22 @@ const POST_METHOD = 'POST';
 const MULTIPART_FORMDATA = 'multipart/form-data';
 let request = require('request');
 let fs = require('fs');
-
-
+const compareImages = require("resemblejs/compareImages");
+const util = require("util");
+const readFile = util.promisify(fs.readFile);
+function getEnv(name) {
+    return eval("process.env."+name+" || null");
+}
 module.exports = {
     Oculow: class Oculow {
         constructor() {
+            //Detect os environment variables fo oculow and asignconst example: this.apiKey = process.env.KEY || 3000; this.apiSecretKey = process.env.SECRET
+            this.apiKey = getEnv("KEY")
+            this.apiSecretKey = getEnv("SECRET")
+            this.appId = getEnv("APP")
+            //Load up account data if creds are inserted.
+            this.getAccount()
+            this.accId = null
             this.tmp = require('tmp');
             this.path = require('path');
             this.MANUAL = 0;
@@ -22,17 +33,16 @@ module.exports = {
             this.comparisonLogic = 1
             this.baselineManagement = 1
             this.executionId = null
-            this.apiKey = null
-            this.apiSecretKey = null
-            this.appId = null
-            this.accId = null
+            
+            
             this.viewportWidth = null
             this.viewportHeight = null
             this.executionStatus = null
             this.baseUrl = "https://us-central1-lince-232621.cloudfunctions.net/"
             this.reportBaseUrl = "https://oculow.com/dashboard/executions.html"
-            this.executionStatusFunction = "get_execution_status-prod"
-            this.processFunction = "process_image-prod"
+            this.executionStatusFunction = "get_execution_status-dev"
+            this.processFunction = "process_image-dev"
+            this.accFunction = "get_account-dev"
         };
 
         setComparisonLogic(COMPARISON_LOGIC) {
@@ -117,7 +127,7 @@ module.exports = {
         }
 
 
-        captureScreen(browser, title) {
+        captureScreen(browser, title) {   
             if (this.path.extname(title) == '') {
                 title = title + '.png'
             }
@@ -125,7 +135,15 @@ module.exports = {
             console.log("Final image path: " + final_image_path);
             browser.saveScreenshot(final_image_path);
             this.setViewportSize();
-            this.uploadImage(final_image_path);
+            // this.uploadImage(final_image_path);
+            
+            //New code for resemblejs
+            const data = compareImages(final_image_path, final_image_path);
+            console.log("FINALLY COMPARED THESE FUCKERS")
+            console.log(data)
+            assert.equal(data.misMatchPercentage,0)
+            
+
         }
 
 
@@ -164,6 +182,26 @@ module.exports = {
                 }
             }
             console.log("To view a detailed report of the execution please navigate to: ", this.reportBaseUrl + "?id=" + this.executionId);
+        }
+
+        getAccount(){
+            if (!this.apiKey && !this.apiSecretKey && !this.appId)
+                return null;
+            let accURL = this.accFunction + "?api_key=" + this.apiKey + "&secret=" + this.apiSecretKey;
+            let options = {url: accURL, method: GET_METHOD, headers: headers};
+            browser.call(() => {
+                return new Promise((resolve, reject) => {
+                    request(options,(err,res) => {
+                        if (err) {
+                            return reject(err)
+                        }
+                        resolve(res)
+                        console.log("Retrieved account", res.statusCode + " " + res.statusMessage);
+                        this.account = JSON.parse(res.body).results;
+                        this.accId = this.account.acc_id;
+                    })
+                })
+            })
         }
     }
 }
