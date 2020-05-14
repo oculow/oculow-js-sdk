@@ -30,18 +30,23 @@
   ],
   "homepage": "https://github.com/oculow/oculow-js-sdk#readme",
   "devDependencies": {
-    "@wdio/cli": "^5.16.10",
+    "@wdio/cli": "^5.22.4",
     "@wdio/local-runner": "^5.18.0",
     "@wdio/mocha-framework": "^5.16.15",
     "@wdio/selenium-standalone-service": "^5.16.10",
     "@wdio/spec-reporter": "^5.16.11",
     "@wdio/sync": "^5.17.0",
-    "chromedriver": "^78.0.1",
+    "chromedriver": "^81.0.0",
     "wdio-chromedriver-service": "^5.0.2"
   },
   "dependencies": {
     "form-data": "^3.0.0",
+    "image-downloader": "^4.0.1",
     "request": "^2.88.0",
+    "request-promise": "^4.2.5",
+    "resemblejs": "^3.2.4",
+    "selenium-standalone": "^6.17.0",
+    "selenium-webdriver": "^4.0.0-alpha.7",
     "tmp": "^0.1.0"
   }
 }
