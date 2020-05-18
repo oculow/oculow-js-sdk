@@ -35,12 +35,10 @@ module.exports = {
             console.debug('Dir: ', this._dir);
             this.comparisonLogic = 1
             this.baselineManagement = 1
-            this.executionId = null
             
             
             this.viewportWidth = null
             this.viewportHeight = null
-            this.executionStatus = null
             this.baseUrl = "https://us-central1-lince-232621.cloudfunctions.net/"
             this.reportBaseUrl = "https://oculow.com/dashboard/executions.html"
             this.executionStatusFunction = "get_execution_status-dev"
@@ -62,12 +60,12 @@ module.exports = {
 
         setExecutionId(EXECUTION_ID){
             console.info("Setting execution id")
-            this.executionId = EXECUTION_ID;
+            this.execution['id'] = EXECUTION_ID;
         }
 
         setExecutionStatus(STATUS){
             console.info("Setting execution status")
-            this.executionStatus = STATUS;
+            this.execution['status'] = STATUS;
         }
         
         setAppId(APP_ID) {
@@ -88,8 +86,8 @@ module.exports = {
 
         setViewportSize(){
             console.info("Setting viewport size")
-            this.viewportWidth = this.getBrowserWindowSize('width');
-            this.viewportHeight = this.getBrowserWindowSize('height');
+            this.execution['viewportWidth'] = this.getBrowserWindowSize('width');
+            this.execution['viewportHeight'] = this.getBrowserWindowSize('height');
         }
 
         getBrowserWindowSize(param){
@@ -118,8 +116,8 @@ module.exports = {
                 api_key: this.apiKey + "__" + this.apiSecretKey,
                 app_id: this.appId
             }
-            if(this.executionId){
-                data.execution_id = this.executionId;
+            if(this.execution['id']){
+                data.execution_id = this.execution['id'];
             }
             let options = {url: url, method: POST_METHOD, headers: headers, formData: data};
             browser.call(() => {
@@ -152,21 +150,24 @@ module.exports = {
             
             //New code for resemblejs
             this.getAccount()
-            let res_key = this.viewportWidth + '_' + this.viewportHeight 
+            let res_key = this.execution['viewportWidth'] + '_' + this.execution['viewportHeight']
             let dict_safe_title = title.replace(".","_").toLowerCase()
             console.info("Looking for baseline in account data: " + dict_safe_title +"   "+res_key)
             this.baseline_url = this.getBaselineUrl(dict_safe_title, res_key)
+            let validation = this.execution || []
+
             if (this.baseline_url == null){
                 console.info("No baseline detected, creating new execution log.")
-                let validation = this.execution.new_validation || []
                 validation.push({"res_key":res_key, "dict_safe_title":dict_safe_title, "save_path":this.final_image_path})
-                this.execution["new_validation"] = validation
+                this.execution["validation"] = validation
                 
             }else{
                 this.baseline_path = this.final_image_path.replace(".png", "_baseline.png")
                 console.info("Comparing images")
                 this.compareImageToBaseline(browser, this.baseline_url, this.baseline_path)
-                    
+                validation.append(this.comparison)
+                this.execution["validation"] = validation
+                this.comparison = null
                 // console.debug("Image comparison result: ")
                 // console.debug(this.comparison)
                 // assert.equal(this.comparison.misMatchPercentage,0)
@@ -180,7 +181,7 @@ module.exports = {
             let data = {
                 api_key: this.apiKey,
                 app_id: this.appId,
-                execution_id: this.executionId
+                execution_id: this.execution['id']
             }
             let options = {url: url, method: POST_METHOD, headers: headers, formData: data};
             browser.call(() => {
@@ -194,12 +195,12 @@ module.exports = {
                         this.setExecutionStatus(res.body)
                         assert.equal(200, res.statusCode);
                     })
-                }).then(this.dispose(this.executionStatus))
+                }).then(this.dispose(this.execution['status']))
             })   
         }
 
         dispose(status){
-            let reportURL = this.reportBaseUrl + "?id=" + this.executionId + "&app_id=" + this.appId + "&acc_id=" + this.accId;
+            let reportURL = this.reportBaseUrl + "?id=" + this.execution['id'] + "&app_id=" + this.appId + "&acc_id=" + this.accId;
             if(status){
                 if (status.includes("action required")) {
                 console.log("Baseline action is required, visit:", reportURL);
@@ -208,7 +209,7 @@ module.exports = {
                     console.log("Tests failed, please review at: ", reportURL);
                 }
             }
-            console.warn("To view a detailed report of the execution please navigate to: ", this.reportBaseUrl + "?id=" + this.executionId);
+            console.warn("To view a detailed report of the execution please navigate to: ", this.reportBaseUrl + "?id=" + this.execution['id']);
         }
 
         getAccount(){
