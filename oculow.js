@@ -2,6 +2,8 @@ const assert = require('assert')
 const POST_METHOD = 'POST';
 const GET_METHOD = 'GET';
 const MULTIPART_FORMDATA = 'multipart/form-data';
+const tmp = require('tmp');
+const path = require('path');
 let request = require('request');
 var rp = require('request-promise');
 let fs = require('fs');
@@ -22,8 +24,6 @@ module.exports = {
             //Load up account data if creds are inserted.
             this.getAccount()
             this.accId = null
-            this.tmp = require('tmp');
-            this.path = require('path');
             this.MANUAL = 0;
             this.ASSISTED = 1;
             this.FORCE_NEW = 2;
@@ -31,18 +31,14 @@ module.exports = {
             this.PIXEL_DIFF = 0;
             this.IGNORE_AA = 1;
             this.DETECT_ERRORS = 3;
-            this._dir = this.tmp.dirSync().name;
+            this._dir = tmp.dirSync().name;
             console.debug('Dir: ', this._dir);
-            this.comparisonLogic = 1
-            this.baselineManagement = 1
             
-            
-            this.viewportWidth = null
-            this.viewportHeight = null
             this.baseUrl = "https://us-central1-lince-232621.cloudfunctions.net/"
             this.reportBaseUrl = "https://oculow.com/dashboard/executions.html"
             this.executionStatusFunction = "get_execution_status-dev"
-            this.processFunction = "process_image-dev"
+            this.uploadImageFunction = "process_image-dev"
+            this.uploadImageFunction = "process_image-dev"
             this.accFunction = "get_account-dev"
 
             this.execution = {}
@@ -50,12 +46,12 @@ module.exports = {
 
         setComparisonLogic(COMPARISON_LOGIC) {
             console.info("Setting baseline comparison logic")
-            this.comparisonLogic = COMPARISON_LOGIC;
+            this.execution['comparisonLogic'] = COMPARISON_LOGIC;
         }
 
         setBaselineManagement(MANAGEMENT_LEVEL) {
             console.info("Setting baseline management level")
-            this.baselineManagement = MANAGEMENT_LEVEL;
+            this.execution['baselineManagement'] = MANAGEMENT_LEVEL;
         }
 
         setExecutionId(EXECUTION_ID){
@@ -106,43 +102,36 @@ module.exports = {
         }
 
         uploadImage(path) {
-            let url = this.baseUrl + this.processFunction;
+            let url = this.baseUrl + this.uploadImageFunction;
             let headers = { 'Content-Type': MULTIPART_FORMDATA };
             let data = {
                 file: fs.createReadStream(path),
-                viewport: JSON.stringify({width: this.viewportWidth, height: this.viewportHeight}),
-                baseline_management: this.baselineManagement,
-                comparison_logic: this.comparisonLogic,
+                acc_id: this.accId,
+                execution_id: this.execution['id'],
                 api_key: this.apiKey + "__" + this.apiSecretKey,
                 app_id: this.appId
             }
-            if(this.execution['id']){
-                data.execution_id = this.execution['id'];
-            }
             let options = {url: url, method: POST_METHOD, headers: headers, formData: data};
-            browser.call(() => {
-                return new Promise((resolve, reject) => {
-                    request(options,(err,res) => {
-                        if (err) {
-                            return reject(err)
-                        }
-                        resolve(res)
-                        console.info("Capture screen: ", res.statusCode + " " + res.statusMessage);
-                        let load = JSON.parse(res.body);
-                        this.setExecutionId(load.execution_id);
-                        this.setAccId(load.acc_id);
-                        assert.equal(200, res.statusCode);
-                    })
-                }).then(this.getResult())
+            return new Promise((resolve, reject) => {
+                request(options,(err,res) => {
+                    if (err) {
+                        console.log("Error uploading image")
+                        console.log(err)
+                        return reject(err)
+                    }
+                    console.log("Finished uploading image")
+                    console.log(res)
+                    resolve(res)
+                })
             })
         }
 
 
         captureScreen(browser, title) {   
-            if (this.path.extname(title) == '') {
+            if (path.extname(title) == '') {
                 title = title + '.png'
             }
-            this.final_image_path = this.path.join(this._dir.toString(), title);
+            this.final_image_path = path.join(this._dir.toString(), title);
             console.info("Captured image in path: " + this.final_image_path);
             browser.saveScreenshot(this.final_image_path);
             this.setViewportSize();
@@ -154,20 +143,24 @@ module.exports = {
             let dict_safe_title = title.replace(".","_").toLowerCase()
             console.info("Looking for baseline in account data: " + dict_safe_title +"   "+res_key)
             this.baseline_url = this.getBaselineUrl(dict_safe_title, res_key)
-            let validation = this.execution || []
-
+            let validation = this.execution['validation'] || []
+            console.debug("Valiations retrievied", JSON.stringify(validation))
             if (this.baseline_url == null){
                 console.info("No baseline detected, creating new execution log.")
-                validation.push({"res_key":res_key, "dict_safe_title":dict_safe_title, "save_path":this.final_image_path})
+                validation.push({
+                    "res_key":res_key,
+                    "dict_safe_title":dict_safe_title,
+                    "save_path":this.final_image_path,
+                    "new_execution":true
+                })
                 this.execution["validation"] = validation
                 
             }else{
                 this.baseline_path = this.final_image_path.replace(".png", "_baseline.png")
                 console.info("Comparing images")
-                this.compareImageToBaseline(browser, this.baseline_url, this.baseline_path)
-                validation.append(this.comparison)
-                this.execution["validation"] = validation
-                this.comparison = null
+                this.uploadImage(this.baseline_path)
+                this.compareImageToBaseline(browser, this.baseline_url, this.baseline_path, validation,res_key, dict_safe_title)
+                
                 // console.debug("Image comparison result: ")
                 // console.debug(this.comparison)
                 // assert.equal(this.comparison.misMatchPercentage,0)
@@ -227,7 +220,7 @@ module.exports = {
             let options = {url: accURL, method: GET_METHOD, headers: headers};
             browser.call(() => {
                 return new Promise((resolve, reject) => {
-                    request(options,(err,res) => {
+                    request(options,(err, res) => {
                         if (err) {
                             return reject(err)
                         }
@@ -251,21 +244,32 @@ module.exports = {
             return null;
         }
 
-        compareImageToBaseline(browser, url, path){
+        async compareImageToBaseline(browser, url, path, validation, res_key, dict_safe_title){
             console.log("Downloading image to " + path)
             let file = fs.createWriteStream(path);
             let options = {url: url, method: GET_METHOD, headers: {}};
             browser.call(() => {
                 return new Promise((resolve, reject) => {
-                    request(options,(err,res) => {
+                    request(options, (err, res) => {
                         if (err) {
-                            return reject(err)
+                            return reject(err);
                         };
-                        resolve(res)
+                        resolve(res);
                     }).pipe(file).on('finish', () => {
-                        console.log("RESPONSE HERE")
-                    this.comparison = compareImages(this.baseline_path, this.final_image_path)
-                    console.log("comparison actual value", this.comparison)
+                        console.log("Finished downloading baseline");
+                        compareImages(this.baseline_path, this.final_image_path).then((res) => {
+                            console.debug("Comparison result")
+                            console.debug(this.comparison)
+                            validation.push({
+                                "res_key":res_key,
+                                "dict_safe_title":dict_safe_title,
+                                "save_path":this.final_image_path,
+                                "new_execution":false,
+                                "comparison": JSON.parse(JSON.stringify(res))
+                            })
+                            this.execution["validation"] = validation
+                            this.comparison = null
+                        })
                     })
                 })
             })
