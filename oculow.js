@@ -100,19 +100,22 @@ module.exports = {
             }
             let options = {url: url, method: POST_METHOD, headers: headers, formData: data};
             browser.call(() => {
+                console.log("Calling url")
                 return new Promise((resolve, reject) => {
                     request(options,(err,res) => {
                         if (err) {
                             return reject(err)
                         }
-                        resolve(res)
                         console.log("Capture screen: ", res.statusCode + " " + res.statusMessage);
                         let load = JSON.parse(res.body);
+                        console.log("Output body: ", load)
                         this.setExecutionId(load.execution_id);
                         this.setAccId(load.acc_id);
+                        console.log(this.executionId)
                         assert.equal(200, res.statusCode);
+                        resolve(res)
                     })
-                }).then(this.getResult())
+                })
             })
         }
 
@@ -125,11 +128,12 @@ module.exports = {
             console.log("Final image path: " + final_image_path);
             browser.saveScreenshot(final_image_path);
             this.setViewportSize();
-            this.uploadImage(final_image_path);
+            console.log("Viewport:"+this.viewportHeight+"x" +this.viewportWidth)
+            return this.uploadImage(final_image_path);
         }
 
 
-        getResult(){
+        dispose(){
             let url = this.baseUrl + this.executionStatusFunction;
             let headers = { 'Content-Type': MULTIPART_FORMDATA };
             let data = {
@@ -139,6 +143,7 @@ module.exports = {
             }
             let options = {url: url, method: POST_METHOD, headers: headers, formData: data};
             browser.call(() => {
+                console.log("Calling url")
                 return new Promise((resolve, reject) => {
                     request(options,(err,res) => {
                         if (err) {
@@ -149,11 +154,11 @@ module.exports = {
                         this.setExecutionStatus(res.body)
                         assert.equal(200, res.statusCode);
                     })
-                }).then(this.dispose(this.executionStatus))
+                }).then(this.logExecution(this.executionStatus))
             })   
         }
 
-        dispose(status){
+        logExecution(status){
             let reportURL = this.reportBaseUrl + "?id=" + this.executionId + "&app_id=" + this.appId + "&acc_id=" + this.accId;
             if(status){
                 if (status.includes("action required")) {
