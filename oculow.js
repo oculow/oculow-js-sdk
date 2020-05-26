@@ -30,7 +30,7 @@ module.exports = {
             this.viewportHeight = null
             this.executionStatus = null
             this.baseUrl = "https://us-central1-lince-232621.cloudfunctions.net/"
-            this.reportBaseUrl = "https://oculow.com/dashboard/executions.html"
+            this.reportBaseUrl = "https://www.oculow.com/dashboard/executions.html"
             this.executionStatusFunction = "get_execution_status-prod"
             this.processFunction = "process_image-prod"
         };
@@ -168,7 +168,7 @@ module.exports = {
                     console.log("Tests failed, please review at: ", reportURL);
                 }
             }
-            console.log("To view a detailed report of the execution please navigate to: ", this.reportBaseUrl + "?id=" + this.executionId);
+            console.log("To view a detailed report of the execution please navigate to: ", reportURL);
         }
     }
 }

@@ -34,4 +34,5 @@ describe('oculow sdk test', () => {
 
 after(() => {
     console.log("Teardown of test")
+    oculow.dispose()
 })
