@@ -5,11 +5,9 @@ const MULTIPART_FORMDATA = 'multipart/form-data';
 const tmp = require('tmp');
 const path = require('path');
 let request = require('request');
-var rp = require('request-promise');
 let fs = require('fs');
+const { v4: uuidv4 } = require('uuid')
 let compareImages = require("resemblejs/compareImages");
-const util = require("util");
-const readFile = util.promisify(fs.readFile);
 function getEnv(name) {
     return eval("process.env."+name+" || null");
 }
@@ -35,13 +33,13 @@ module.exports = {
             console.debug('Dir: ', this._dir);
             
             this.baseUrl = "https://us-central1-lince-232621.cloudfunctions.net/"
-            this.reportBaseUrl = "https://oculow.com/dashboard/executions.html"
+            this.reportBaseUrl = "https://www.oculow.com/dashboard/executions.html"
             this.executionStatusFunction = "get_execution_status-dev"
-            this.uploadImageFunction = "process_image-dev"
-            this.uploadImageFunction = "process_image-dev"
+            this.uploadImageFunction = "upload_image-dev"
             this.accFunction = "get_account-dev"
 
             this.execution = {}
+            this.execution.id = uuidv4()
         };
 
         setComparisonLogic(COMPARISON_LOGIC) {
@@ -119,8 +117,7 @@ module.exports = {
                         console.log(err)
                         return reject(err)
                     }
-                    console.log("Finished uploading image")
-                    console.log(res)
+                    console.log("Succesfully uploaded image")
                     resolve(res)
                 })
             })
@@ -135,7 +132,6 @@ module.exports = {
             console.info("Captured image in path: " + this.final_image_path);
             browser.saveScreenshot(this.final_image_path);
             this.setViewportSize();
-            // this.uploadImage(final_image_path);
             
             //New code for resemblejs
             this.getAccount()
@@ -145,6 +141,7 @@ module.exports = {
             this.baseline_url = this.getBaselineUrl(dict_safe_title, res_key)
             let validation = this.execution['validation'] || []
             console.debug("Valiations retrievied", JSON.stringify(validation))
+            this.uploadImage(this.final_image_path)
             if (this.baseline_url == null){
                 console.info("No baseline detected, creating new execution log.")
                 validation.push({
@@ -158,7 +155,7 @@ module.exports = {
             }else{
                 this.baseline_path = this.final_image_path.replace(".png", "_baseline.png")
                 console.info("Comparing images")
-                this.uploadImage(this.baseline_path)
+                
                 this.compareImageToBaseline(browser, this.baseline_url, this.baseline_path, validation,res_key, dict_safe_title)
                 
                 // console.debug("Image comparison result: ")
@@ -168,7 +165,7 @@ module.exports = {
         }
 
 
-        getResult(){
+        dispose(browser){
             let url = this.baseUrl + this.executionStatusFunction;
             let headers = { 'Content-Type': MULTIPART_FORMDATA };
             let data = {
@@ -183,16 +180,16 @@ module.exports = {
                         if (err) {
                             return reject(err)
                         }
-                        resolve(res)
                         console.log("Get result: ", res.statusCode + " " + res.statusMessage);
                         this.setExecutionStatus(res.body)
                         assert.equal(200, res.statusCode);
+                        resolve(res)
                     })
-                }).then(this.dispose(this.execution['status']))
+                }).then(this.logExecution(this.execution['status']))
             })   
         }
 
-        dispose(status){
+        logExecution(status){
             let reportURL = this.reportBaseUrl + "?id=" + this.execution['id'] + "&app_id=" + this.appId + "&acc_id=" + this.accId;
             if(status){
                 if (status.includes("action required")) {
@@ -202,7 +199,7 @@ module.exports = {
                     console.log("Tests failed, please review at: ", reportURL);
                 }
             }
-            console.warn("To view a detailed report of the execution please navigate to: ", this.reportBaseUrl + "?id=" + this.execution['id']);
+            console.warn("To view a detailed report of the execution please navigate to: ", reportURL);
         }
 
         getAccount(){

@@ -40,6 +40,8 @@ describe('oculow sdk test', () => {
         browser.url('https://www.oculow.com/404')
         oculow.captureScreen(browser, "Not found.png");
 
+        oculow.dispose(browser)
+
     })
     
 })
