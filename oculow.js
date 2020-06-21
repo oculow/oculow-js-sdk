@@ -4,10 +4,14 @@ const GET_METHOD = 'GET';
 const MULTIPART_FORMDATA = 'multipart/form-data';
 const tmp = require('tmp');
 const path = require('path');
+let { promisify } = require('util');
+let sizeOf = promisify(require('image-size'));
 let request = require('request');
 let fs = require('fs');
 const { v4: uuidv4 } = require('uuid')
 let compareImages = require("resemblejs/compareImages");
+const { INTERNAL_COMPUTE_OFFSET_SCRIPT } = require('selenium-webdriver/lib/input');
+
 function getEnv(name) {
     return eval("process.env."+name+" || null");
 }
@@ -34,12 +38,13 @@ module.exports = {
             
             this.baseUrl = "https://us-central1-lince-232621.cloudfunctions.net/"
             this.reportBaseUrl = "https://www.oculow.com/dashboard/executions.html"
-            this.executionStatusFunction = "get_execution_status-dev"
+            this.executionStatusFunction = "update_execution" //TODO ADD DEV ENV
             this.uploadImageFunction = "upload_image-dev"
             this.accFunction = "get_account-dev"
 
             this.execution = {}
             this.execution.id = uuidv4()
+            this.execution['status'] = "passed"
         };
 
         setComparisonLogic(COMPARISON_LOGIC) {
@@ -123,7 +128,12 @@ module.exports = {
             })
         }
 
-
+        async setImageSize(final_image_path){
+            const dimensions = await sizeOf(final_image_path);
+            this.image_height = dimensions.height
+            this.image_width = dimensions.width
+            console.log("set image size")
+        }
         captureScreen(browser, title) {   
             if (path.extname(title) == '') {
                 title = title + '.png'
@@ -133,34 +143,40 @@ module.exports = {
             browser.saveScreenshot(this.final_image_path);
             this.setViewportSize();
             
-            //New code for resemblejs
+            
             this.getAccount()
             let res_key = this.execution['viewportWidth'] + '_' + this.execution['viewportHeight']
-            let dict_safe_title = title.replace(".","_").toLowerCase()
+            let dict_safe_title = title.replace(".","_")
             console.info("Looking for baseline in account data: " + dict_safe_title +"   "+res_key)
             this.baseline_url = this.getBaselineUrl(dict_safe_title, res_key)
             let validation = this.execution['validation'] || []
             console.debug("Valiations retrievied", JSON.stringify(validation))
             this.uploadImage(this.final_image_path)
+            console.log("setting image size")
+            this.setImageSize(this.final_image_path)
             if (this.baseline_url == null){
+                //TODO PROCESS ML/AI
                 console.info("No baseline detected, creating new execution log.")
                 validation.push({
                     "res_key":res_key,
                     "dict_safe_title":dict_safe_title,
+                    "save_name":title,
+                    "height":this.execution['viewportHeight'],
+                    "width": this.execution['viewportWidth'],
+                    "image_height": this.image_height,
+                    "image_width": this.image_width,
                     "save_path":this.final_image_path,
                     "new_execution":true
                 })
                 this.execution["validation"] = validation
                 
-            }else{
+            }
+            else{
                 this.baseline_path = this.final_image_path.replace(".png", "_baseline.png")
                 console.info("Comparing images")
+                this.downloadBaseline(browser, this.baseline_url, this.baseline_path)
+                this.compareImageToBaseline(browser, validation,res_key, dict_safe_title, title)
                 
-                this.compareImageToBaseline(browser, this.baseline_url, this.baseline_path, validation,res_key, dict_safe_title)
-                
-                // console.debug("Image comparison result: ")
-                // console.debug(this.comparison)
-                // assert.equal(this.comparison.misMatchPercentage,0)
             }
         }
 
@@ -169,10 +185,15 @@ module.exports = {
             let url = this.baseUrl + this.executionStatusFunction;
             let headers = { 'Content-Type': MULTIPART_FORMDATA };
             let data = {
-                api_key: this.apiKey,
+                api_key: this.apiKey+'__'+this.apiSecretKey,
                 app_id: this.appId,
-                execution_id: this.execution['id']
+                execution_id: this.execution['id'],
+                baseline_management: this.execution['baselineManagement'],
+                comparison_logic: this.execution['comparisonLogic'],
+                execution_status: this.execution['status'],
+                processed_files: JSON.stringify(this.execution["validation"])
             }
+            console.log("Post data: ", data)
             let options = {url: url, method: POST_METHOD, headers: headers, formData: data};
             browser.call(() => {
                 return new Promise((resolve, reject) => {
@@ -231,8 +252,9 @@ module.exports = {
             })
         }
         getBaselineUrl(title, res_key){
+            console.debug("Looking for ", title, res_key)
             let baselines = this.account.data.baselines;
-            console.debug("All baselines in app executions");
+            console.debug("All baselines in app executions: ", baselines);
             let cond = (title in baselines) && (res_key in baselines[title]);
             console.debug("Condition: "+cond);
             if(cond){
@@ -241,35 +263,52 @@ module.exports = {
             return null;
         }
 
-        async compareImageToBaseline(browser, url, path, validation, res_key, dict_safe_title){
-            console.log("Downloading image to " + path)
+        downloadBaseline(browser, url, path){
             let file = fs.createWriteStream(path);
             let options = {url: url, method: GET_METHOD, headers: {}};
             browser.call(() => {
+                console.log("Downloading image to " + path)
                 return new Promise((resolve, reject) => {
                     request(options, (err, res) => {
                         if (err) {
                             return reject(err);
                         };
-                        resolve(res);
                     }).pipe(file).on('finish', () => {
                         console.log("Finished downloading baseline");
-                        compareImages(this.baseline_path, this.final_image_path).then((res) => {
-                            console.debug("Comparison result")
-                            console.debug(this.comparison)
-                            validation.push({
-                                "res_key":res_key,
-                                "dict_safe_title":dict_safe_title,
-                                "save_path":this.final_image_path,
-                                "new_execution":false,
-                                "comparison": JSON.parse(JSON.stringify(res))
-                            })
-                            this.execution["validation"] = validation
-                            this.comparison = null
-                        })
+                        resolve()
                     })
                 })
             })
+        }
+
+        async compareImageToBaseline(browser, validation, res_key, dict_safe_title, title){
+            browser.call(() => { 
+                console.debug("Comparing")
+                compareImages(this.baseline_path, this.final_image_path).then((res) => {
+                    console.debug("Comparison result")
+                    console.debug(JSON.stringify(res))
+                    let currValid = "passed"
+                    if (res.rawMisMatchPercentage > 0){
+                        currValid = "failed"
+                        this.execution['status'] = "failed"
+                    }
+                    validation.push({
+                        "res_key":res_key,
+                        "dict_safe_title":dict_safe_title,
+                        "save_path":this.final_image_path,
+                        "save_name":title,
+                        "new_execution":false,
+                        "height":this.execution['viewportHeight'],
+                        "width": this.execution['viewportWidth'],
+                        "image_height": this.image_height,
+                        "image_width": this.image_width,
+                        "status": currValid,
+                        "comparison": JSON.parse(JSON.stringify(res))
+                    })
+                    this.execution["validation"] = validation
+                    this.comparison = null
+                })
+            })   
         }
     }
 }

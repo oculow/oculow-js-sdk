@@ -28,22 +28,31 @@ describe('oculow sdk test', () => {
     oculow.setBaselineManagement(oculow.ASSISTED)
     oculow.setComparisonLogic(oculow.PIXEL_DIFF)
 
-    it('should capture and process the image', () => {
+    // it('should capture and process the image', () => {
+    //     browser.url('https://www.oculow.com')
+    //     oculow.captureScreen(browser, "Homepage");
+        
+        
+    //     browser.url('https://www.oculow.com/blog/index.html')
+    //     oculow.captureScreen(browser, "Blog");
+        
+
+    //     browser.url('https://www.oculow.com/404')
+    //     oculow.captureScreen(browser, "Not found.png");
+
+    //     oculow.dispose(browser)
+
+    // })
+
+    it('Should contain a baseline', () => {
+        browser.setWindowSize(1936, 1056)
+        
         browser.url('https://www.oculow.com')
-        oculow.captureScreen(browser, "Homepage");
+        oculow.captureScreen(browser, "Store home");
         
-        
-        browser.url('https://www.oculow.com/blog/index.html')
-        oculow.captureScreen(browser, "Blog");
-        
-
-        browser.url('https://www.oculow.com/404')
-        oculow.captureScreen(browser, "Not found.png");
-
         oculow.dispose(browser)
 
     })
-    
 })
 
 // after(() => {
