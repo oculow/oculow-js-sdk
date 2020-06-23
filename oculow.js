@@ -114,6 +114,7 @@ module.exports = {
                 api_key: this.apiKey + "__" + this.apiSecretKey,
                 app_id: this.appId
             }
+            console.log("Uploading image: ", url)
             let options = {url: url, method: POST_METHOD, headers: headers, formData: data};
             return new Promise((resolve, reject) => {
                 request(options,(err,res) => {
@@ -128,11 +129,13 @@ module.exports = {
             })
         }
 
-        async setImageSize(final_image_path){
-            const dimensions = await sizeOf(final_image_path);
-            this.image_height = dimensions.height
-            this.image_width = dimensions.width
-            console.log("set image size")
+        async setImageSize(browser, final_image_path){
+            browser.call(async () => { 
+                const dimensions = await sizeOf(final_image_path);
+                this.image_height = dimensions.height
+                this.image_width = dimensions.width
+                console.log("set image size")
+            })
         }
         captureScreen(browser, title) {   
             if (path.extname(title) == '') {
@@ -153,7 +156,7 @@ module.exports = {
             console.debug("Valiations retrievied", JSON.stringify(validation))
             this.uploadImage(this.final_image_path)
             console.log("setting image size")
-            this.setImageSize(this.final_image_path)
+            this.setImageSize(browser, this.final_image_path)
             if (this.baseline_url == null){
                 //TODO PROCESS ML/AI
                 console.info("No baseline detected, creating new execution log.")
@@ -166,7 +169,8 @@ module.exports = {
                     "image_height": this.image_height,
                     "image_width": this.image_width,
                     "save_path":this.final_image_path,
-                    "new_execution":true
+                    "new_execution":true,
+                    "status": "action required" //TODO SET DY
                 })
                 this.execution["validation"] = validation
                 
