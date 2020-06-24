@@ -110,11 +110,12 @@ module.exports = {
             let data = {
                 file: fs.createReadStream(path),
                 acc_id: this.accId,
-                execution_id: this.execution['id'],
+                execution_id: this.execution['id']+"_"+this.accId,
                 api_key: this.apiKey + "__" + this.apiSecretKey,
                 app_id: this.appId
             }
             console.log("Uploading image: ", url)
+
             let options = {url: url, method: POST_METHOD, headers: headers, formData: data};
             return new Promise((resolve, reject) => {
                 request(options,(err,res) => {
