@@ -41,7 +41,14 @@
   },
   "dependencies": {
     "form-data": "^3.0.0",
+    "image-downloader": "^4.0.1",
+    "image-size": "^0.8.3",
     "request": "^2.88.2",
-    "tmp": "^0.1.0"
+    "request-promise": "^4.2.5",
+    "resemblejs": "^3.2.4",
+    "selenium-standalone": "^6.17.0",
+    "selenium-webdriver": "^4.0.0-alpha.7",
+    "tmp": "^0.1.0",
+    "uuid": "^8.1.0"
   }
 }

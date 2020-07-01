@@ -1,4 +1,6 @@
 exports.config = {
+    debug: true,
+    execArgv: ["--inspect-brk=127.0.0.1:5859"],
     //
     // ====================
     // Runner Configuration
@@ -46,16 +48,9 @@ exports.config = {
     // https://docs.saucelabs.com/reference/platforms-configurator
     //
     capabilities: [{
-        // maxInstances can get overwritten per capability. So if you have an in-house Selenium
-        // grid with only 5 firefox instances available you can make sure that not more than
-        // 5 instances get started at a time.
-        maxInstances: 5,
-        //
-        browserName: 'firefox',
-        // If outputDir is provided WebdriverIO can capture driver session logs
-        // it is possible to configure which logTypes to include/exclude.
-        // excludeDriverLogs: ['*'], // pass '*' to exclude all driver session logs
-        // excludeDriverLogs: ['bugreport', 'server'],
+        browserName: 'chrome', // options: `firefox`, `chrome`, `opera`, `safari`
+        browserVersion: '77.0.3865.40', // browser version
+        platformName: 'Windows 10' // OS platform
     }],
     //
     // ===================
@@ -104,7 +99,19 @@ exports.config = {
     // Services take over a specific job you don't want to take care of. They enhance
     // your test setup with almost no effort. Unlike plugins, they don't add new
     // commands. Instead, they hook themselves up into the test process.
-    services: ['selenium-standalone'],
+    services: ['selenium-standalone',  {
+        logPath: 'logs',
+        installArgs: {
+            drivers: {
+                chrome: { version: '81.0.4044.129' }
+            }
+        },
+        args: {
+            drivers: {
+                chrome: { version: '81.0.4044.129' }
+            }
+        },
+    }],
     
     // Framework you want to run your specs with.
     // The following are supported: Mocha, Jasmine, and Cucumber
