@@ -37,7 +37,7 @@ module.exports = {
             console.debug('Dir: ', this._dir);
             
             this.baseUrl = "https://us-central1-lince-232621.cloudfunctions.net/"
-            this.reportBaseUrl = "https://www.oculow.com/dashboard/executions.html"
+            this.reportBaseUrl = "http://local.oculow.com:5503/dashboard/executions.html"
             this.executionStatusFunction = "update_execution" //TODO ADD DEV ENV
             this.uploadImageFunction = "upload_image-dev"
             this.accFunction = "get_account-dev"
@@ -152,13 +152,13 @@ module.exports = {
             let res_key = this.execution['viewportWidth'] + '_' + this.execution['viewportHeight']
             let dict_safe_title = title.replace(".","_")
             console.info("Looking for baseline in account data: " + dict_safe_title +"   "+res_key)
-            this.baseline_url = this.getBaselineUrl(dict_safe_title, res_key)
+            this.baseline = this.getBaseline(dict_safe_title, res_key)
             let validation = this.execution['validation'] || []
             console.debug("Valiations retrievied", JSON.stringify(validation))
             this.uploadImage(this.final_image_path)
             console.log("setting image size")
             this.setImageSize(browser, this.final_image_path)
-            if (this.baseline_url == null){
+            if (this.baseline == null){
                 //TODO PROCESS ML/AI
                 console.info("No baseline detected, creating new execution log.")
                 validation.push({
@@ -179,8 +179,8 @@ module.exports = {
             else{
                 this.baseline_path = this.final_image_path.replace(".png", "_baseline.png")
                 console.info("Comparing images")
-                this.downloadBaseline(browser, this.baseline_url, this.baseline_path)
-                this.compareImageToBaseline(browser, validation,res_key, dict_safe_title, title)
+                this.downloadBaseline(browser, this.baseline["url"], this.baseline_path)
+                this.compareImageToBaseline(browser, validation,res_key, dict_safe_title, title, JSON.parse(this.baseline["ignored"]))
                 
             }
         }
@@ -216,7 +216,7 @@ module.exports = {
         }
 
         logExecution(status){
-            let reportURL = this.reportBaseUrl + "?id=" + this.execution['id'] + "&app_id=" + this.appId + "&acc_id=" + this.accId;
+            let reportURL = this.reportBaseUrl + "?id=" + encodeURIComponent(this.execution['id']+"_"+this.accId) + "&app_id=" + encodeURIComponent(this.appId) + "&acc_id=" + encodeURIComponent(this.accId);
             if(status){
                 if (status.includes("action required")) {
                 console.log("Baseline action is required, visit:", reportURL);
@@ -238,7 +238,7 @@ module.exports = {
                 return null;
             }
             let headers = { };
-            let accURL =this.baseUrl + this.accFunction + "?api_key=" + encodeURIComponent(this.apiKey) + "&secret=" + encodeURIComponent(this.apiSecretKey);
+            let accURL =this.baseUrl + this.accFunction + "?api_key=" + encodeURIComponent(this.apiKey) + "&secret=" + encodeURIComponent(this.apiSecretKey)+"&project=" + encodeURIComponent(this.appId);
             console.debug("request url: "+accURL)
             let options = {url: accURL, method: GET_METHOD, headers: headers};
             browser.call(() => {
@@ -256,14 +256,16 @@ module.exports = {
                 })
             })
         }
-        getBaselineUrl(title, res_key){
+        getBaseline(title, res_key){
             console.debug("Looking for ", title, res_key)
             let baselines = this.account.data.baselines;
             console.debug("All baselines in app executions: ", baselines);
             let cond = (title in baselines) && (res_key in baselines[title]);
-            console.debug("Condition: "+cond);
             if(cond){
-                return baselines[title][res_key]["url"];
+                return {
+                    "url": baselines[title][res_key]["url"],
+                    "ignored":baselines[title][res_key]["marked_regions"]
+                };
             }
             return null;
         }
@@ -286,10 +288,36 @@ module.exports = {
             })
         }
 
-        async compareImageToBaseline(browser, validation, res_key, dict_safe_title, title){
+        async compareImageToBaseline(browser, validation, res_key, dict_safe_title, title, ignored_regions){
             browser.call(() => { 
-                console.debug("Comparing")
-                compareImages(this.baseline_path, this.final_image_path).then((res) => {
+                    var _ignoredBoxes = []
+                    ignored_regions.forEach(elem => {
+                        if (elem["label"] === "ignore"){
+                            _ignoredBoxes.push({
+                                left: elem["x_min"],
+                                top: elem["y_min"],
+                                right: elem["x_max"],
+                                bottom: elem["y_max"]
+                            });
+                        }
+                    });
+                var options = {
+                    output:{
+                        errorColor: {
+                            red: 255,
+                            green: 0,
+                            blue: 255
+                        },
+                        errorType: "diffOnly",
+                        transparency: 0.3,
+                        largeImageThreshold: 1200,
+                        useCrossOrigin: true,
+                        outputDiff: true,
+                        ignoredBoxes: _ignoredBoxes
+                    }
+                };
+                console.debug("Comparing with options", options)
+                compareImages(this.baseline_path, this.final_image_path, options).then((res) => {
                     console.debug("Comparison result")
                     console.debug(JSON.stringify(res))
                     let currValid = "passed"
