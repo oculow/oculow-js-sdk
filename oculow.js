@@ -37,8 +37,8 @@ module.exports = {
             console.debug('Dir: ', this._dir);
             
             this.baseUrl = "https://us-central1-lince-232621.cloudfunctions.net/"
-            this.reportBaseUrl = "http://local.oculow.com:5503/dashboard/executions.html"
-            this.executionStatusFunction = "update_execution" //TODO ADD DEV ENV
+            this.reportBaseUrl = "https://dev.oculow.com:5503/dashboard/executions.html"
+            this.executionStatusFunction = "update_execution-dev"
             this.uploadImageFunction = "upload_image-dev"
             this.accFunction = "get_account-dev"
 
