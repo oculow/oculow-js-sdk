@@ -37,7 +37,8 @@ module.exports = {
             console.debug('Dir: ', this._dir);
             
             this.baseUrl = "https://us-central1-lince-232621.cloudfunctions.net/"
-            this.reportBaseUrl = "https://dev.oculow.com:5503/dashboard/executions.html"
+
+            this.reportBaseUrl = "https://dev.oculow.com/dashboard/executions.html"
             this.executionStatusFunction = "update_execution-dev"
             this.uploadImageFunction = "upload_image-dev"
             this.accFunction = "get_account-dev"
@@ -45,6 +46,7 @@ module.exports = {
             this.execution = {}
             this.execution.id = uuidv4()
             this.execution['status'] = "passed"
+
         };
 
         setComparisonLogic(COMPARISON_LOGIC) {
@@ -201,6 +203,7 @@ module.exports = {
             console.log("Post data: ", data)
             let options = {url: url, method: POST_METHOD, headers: headers, formData: data};
             browser.call(() => {
+                console.log("Calling url")
                 return new Promise((resolve, reject) => {
                     request(options,(err,res) => {
                         if (err) {
