@@ -38,10 +38,10 @@ module.exports = {
             
             this.baseUrl = "https://us-central1-lince-232621.cloudfunctions.net/"
 
-            this.reportBaseUrl = "https://dev.oculow.com/dashboard/executions.html"
-            this.executionStatusFunction = "update_execution-dev"
-            this.uploadImageFunction = "upload_image-dev"
-            this.accFunction = "get_account-dev"
+            this.reportBaseUrl = "https://www.oculow.com/dashboard/executions.html"
+            this.executionStatusFunction = "update_execution-prod"
+            this.uploadImageFunction = "upload_image-prod"
+            this.accFunction = "get_account-prod"
 
             this.execution = {}
             this.execution.id = uuidv4()
