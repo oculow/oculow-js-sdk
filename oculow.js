@@ -267,7 +267,7 @@ module.exports = {
             if(cond){
                 return {
                     "url": baselines[title][res_key]["url"],
-                    "ignored":baselines[title][res_key]["marked_regions"]
+                    "ignored":baselines[title][res_key]["marked_regions"] || "{}"
                 };
             }
             return null;
@@ -293,7 +293,8 @@ module.exports = {
 
         async compareImageToBaseline(browser, validation, res_key, dict_safe_title, title, ignored_regions){
             browser.call(() => { 
-                    var _ignoredBoxes = []
+                var _ignoredBoxes = []
+                if (Object.keys(_ignoredBoxes).length > 0){
                     ignored_regions.forEach(elem => {
                         if (elem["label"] === "ignore"){
                             _ignoredBoxes.push({
@@ -304,6 +305,7 @@ module.exports = {
                             });
                         }
                     });
+                }
                 var options = {
                     output:{
                         errorColor: {
