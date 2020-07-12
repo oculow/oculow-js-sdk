@@ -42,6 +42,7 @@ module.exports = {
             this.executionStatusFunction = "update_execution-prod"
             this.uploadImageFunction = "upload_image-prod"
             this.accFunction = "get_account-prod"
+            this.errorDetect = "detect_errors-prod"
 
             this.execution = {}
             this.execution.id = uuidv4()
@@ -105,6 +106,34 @@ module.exports = {
             }
             
         }
+        
+        detectError(browser, imagePath) {
+            let url = this.baseUrl + this.errorDetect;
+            let headers = { 'Content-Type': MULTIPART_FORMDATA };
+            let data = {
+                file: fs.createReadStream(imagePath),
+                acc_id: this.accId,
+                execution_id: this.execution['id']+"_"+this.accId,
+                api_key: this.apiKey + "__" + this.apiSecretKey,
+                app_id: this.appId
+            }
+
+            let options = {url: url, method: POST_METHOD, headers: headers, formData: data};
+
+            browser.call(() => {
+                console.log("Running error detection" + imagePath)
+                return new Promise((resolve, reject) => {
+                    request(options, (err, res) => {
+                        if (err) {
+                            return reject(err);
+                        };
+                        console.log("Finished with error detection", res.body);
+                        this.errors=JSON.parse(res.body)
+                        resolve()
+                    })
+                })
+            })
+        }
 
         uploadImage(path) {
             let url = this.baseUrl + this.uploadImageFunction;
@@ -140,7 +169,34 @@ module.exports = {
                 console.log("set image size")
             })
         }
-        captureScreen(browser, title) {   
+
+        handleBaselineCreation(browser, validation, res_key, dict_safe_title, title){
+            console.info("No baseline detected, creating new execution log.")
+            console.info("Error detection asgiend value.", this.errors)
+            if (this.execution["status"] == "passed")
+                this.execution["status"] = this.errors["execution_status"]
+            var new_valid = {
+                "res_key":res_key,
+                "dict_safe_title":dict_safe_title,
+                "save_name":title,
+                "height":this.execution['viewportHeight'],
+                "width": this.execution['viewportWidth'],
+                "image_height": this.image_height,
+                "image_width": this.image_width,
+                "save_path":this.final_image_path,
+                "new_execution":true,
+                "status": this.errors["execution_status"]
+            }
+            if("prediction" in this.errors){
+                new_valid["prediction"] = this.errors["prediction"]                 
+            } 
+            validation.push(new_valid)
+                this.execution["validation"] = validation
+        }
+
+        captureScreen(browser, title) {
+            //Reset error detection
+            this.errros = {}   
             if (path.extname(title) == '') {
                 title = title + '.png'
             }
@@ -158,24 +214,11 @@ module.exports = {
             let validation = this.execution['validation'] || []
             console.debug("Valiations retrievied", JSON.stringify(validation))
             this.uploadImage(this.final_image_path)
-            console.log("setting image size")
+            console.log("Setting image size")
             this.setImageSize(browser, this.final_image_path)
             if (this.baseline == null){
-                //TODO PROCESS ML/AI
-                console.info("No baseline detected, creating new execution log.")
-                validation.push({
-                    "res_key":res_key,
-                    "dict_safe_title":dict_safe_title,
-                    "save_name":title,
-                    "height":this.execution['viewportHeight'],
-                    "width": this.execution['viewportWidth'],
-                    "image_height": this.image_height,
-                    "image_width": this.image_width,
-                    "save_path":this.final_image_path,
-                    "new_execution":true,
-                    "status": "action required" //TODO SET DY
-                })
-                this.execution["validation"] = validation
+                this.detectError(browser, this.final_image_path)
+                this.handleBaselineCreation(browser, validation, res_key, dict_safe_title, title)
                 
             }
             else{

@@ -44,11 +44,11 @@ describe('oculow sdk test', () => {
 
     // })
 
-    it('Should contain a baseline', () => {
+    it('Should not contain a baseline', () => {
         browser.setWindowSize(1936, 1056)
         
-        browser.url('https://www.oculow.com')
-        oculow.captureScreen(browser, "Store home");
+        browser.url('https://lince-232621.firebaseapp.com/shopping')
+        oculow.captureScreen(browser, "Store home3");
         
         oculow.dispose(browser)
 
