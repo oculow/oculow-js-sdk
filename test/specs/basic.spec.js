@@ -23,7 +23,8 @@ oculow = new oculow.Oculow();
 // })
 
 describe('oculow sdk test', () => {
-    oculow.setKeys("YD4Q5o7LRJBsrg83vPuCV2s7EVK+ynLz","J8vQG0nkGgmHmqLyjp8NgjGwjS0qy+L1")
+    oculow.setKeys("YD4Q5o7LRJBsrg83vPuCV2s7EVK+ynLz","J8vQG0nkGgmHmqLyjp8NgjGwjS0qy+L1") //admin1
+    // oculow.setKeys("WZSQEzVPinuUF0nnDgoLNCBX+rkN91zi","R1ZJUm83exyVPgnekFNMFmZVGJKk/36X") //use no tests
     oculow.setAppId("oculowjs")
     oculow.setBaselineManagement(oculow.ASSISTED)
     oculow.setComparisonLogic(oculow.PIXEL_DIFF)

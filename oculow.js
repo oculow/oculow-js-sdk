@@ -304,14 +304,16 @@ module.exports = {
         }
         getBaseline(title, res_key){
             console.debug("Looking for ", title, res_key)
-            let baselines = this.account.data.baselines;
-            console.debug("All baselines in app executions: ", baselines);
-            let cond = (title in baselines) && (res_key in baselines[title]);
-            if(cond){
-                return {
-                    "url": baselines[title][res_key]["url"],
-                    "ignored":baselines[title][res_key]["marked_regions"] || "{}"
-                };
+            if (this.account && this.account.data && this.account.data.hasOwnProperty('baseline')){
+                let baselines = this.account.data.baselines;
+                console.debug("All baselines in app executions: ", baselines);
+                let cond = (title in baselines) && (res_key in baselines[title]);
+                if(cond){
+                    return {
+                        "url": baselines[title][res_key]["url"],
+                        "ignored":baselines[title][res_key]["marked_regions"] || "{}"
+                    };
+                }
             }
             return null;
         }
