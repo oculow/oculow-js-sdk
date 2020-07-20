@@ -173,8 +173,10 @@ module.exports = {
         handleBaselineCreation(browser, validation, res_key, dict_safe_title, title){
             console.info("No baseline detected, creating new execution log.")
             console.info("Error detection asgiend value.", this.errors)
-            if (this.execution["status"] == "passed")
-                this.execution["status"] = this.errors["execution_status"]
+            if (this.execution['status'] == "passed" && 'execution_status' in this.errors){
+                console.log("Updating execution status to ", this.errors["execution_status"])
+                this.execution['status'] = this.errors["execution_status"]
+            }
             var new_valid = {
                 "res_key":res_key,
                 "dict_safe_title":dict_safe_title,
@@ -185,7 +187,13 @@ module.exports = {
                 "image_width": this.image_width,
                 "save_path":this.final_image_path,
                 "new_execution":true,
-                "status": this.errors["execution_status"]
+            }
+            if("execution_status" in this.errors){
+                new_valid["status"]= this.errors["execution_status"]
+            }
+            else{
+                new_valid["status"]= "passed"
+
             }
             if("prediction" in this.errors){
                 new_valid["prediction"] = this.errors["prediction"]                 
