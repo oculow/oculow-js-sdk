@@ -36,7 +36,7 @@
     "@wdio/selenium-standalone-service": "^5.16.10",
     "@wdio/spec-reporter": "^5.23.0",
     "@wdio/sync": "^5.23.0",
-    "chromedriver": "^83.0.0",
+    "chromedriver": "^93.0.0",
     "wdio-chromedriver-service": "^5.0.2"
   },
   "dependencies": {

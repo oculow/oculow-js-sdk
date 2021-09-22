@@ -63,3 +63,4 @@ typings/
 .vscode/
 log.logclear
 package-lock.json
+.DS_Store
